@@ -110,13 +110,13 @@ export default function Home() {
           
           {/* Content Wrapper with Card styling for Mobile */}
           <div className="bg-background md:bg-transparent min-h-[60vh] rounded-t-[2.5rem] md:rounded-none shadow-[0_-10px_30px_rgba(0,0,0,0.05)] md:shadow-none border-t border-border/20 md:border-none px-6 py-12 md:p-0">
-            <div className="max-w-2xl mx-auto md:px-16 md:py-32 flex flex-col gap-32 md:gap-48 pb-32">
+            <div className="max-w-2xl mx-auto md:px-16 md:py-32 flex flex-col gap-[60vh] pb-[40vh]">
               {poems.map((poem) => (
                 <article 
                   key={poem.id} 
                   id={`poem-${poem.id}`}
                   data-poem-id={poem.id}
-                  className="flex flex-col gap-6 transition-all duration-700"
+                  className="flex flex-col gap-6 transition-all duration-700 min-h-[50vh] justify-center"
                   style={{ 
                     opacity: activePoemId === poem.id ? 1 : 0.3,
                     transform: activePoemId === poem.id ? 'scale(1)' : 'scale(0.98)',
