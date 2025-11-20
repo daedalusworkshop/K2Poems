@@ -18,138 +18,67 @@ const poemImages: Record<string, string> = {
 
 export default function Home() {
   const [activePoemId, setActivePoemId] = useState<string>(poems[0].id);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Robust scroll detection for active poem
+  // Reverting to IntersectionObserver as it felt more natural to the user
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const viewportCenter = container.getBoundingClientRect().top + container.clientHeight / 2;
-      let closestPoemId = activePoemId;
-      let minDistance = Infinity;
-
-      poems.forEach((poem) => {
-        const element = document.getElementById(`poem-${poem.id}`);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          const elementCenter = rect.top + rect.height / 2;
-          const distance = Math.abs(elementCenter - viewportCenter);
-
-          if (distance < minDistance) {
-            minDistance = distance;
-            closestPoemId = poem.id;
-          }
+    const observers = new Map();
+    
+    const callback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        // Trigger when 50% of the poem is visible
+        if (entry.isIntersecting && entry.intersectionRatio > 0.4) {
+          const id = entry.target.getAttribute("data-poem-id");
+          if (id) setActivePoemId(id);
         }
       });
-
-      if (closestPoemId !== activePoemId) {
-        setActivePoemId(closestPoemId);
-      }
     };
 
-    // Throttle with requestAnimationFrame for performance
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          handleScroll();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
+    const observer = new IntersectionObserver(callback, {
+      root: null, // Viewport
+      rootMargin: "-20% 0px -20% 0px", // Focus area in the middle
+      threshold: [0.2, 0.4, 0.6, 0.8]
+    });
 
-    container.addEventListener("scroll", onScroll);
-    // Initial check
-    handleScroll();
+    poems.forEach((poem) => {
+      const element = document.getElementById(`poem-${poem.id}`);
+      if (element) observer.observe(element);
+    });
 
-    return () => container.removeEventListener("scroll", onScroll);
-  }, [activePoemId]);
-
-  const scrollToTop = () => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="h-screen bg-background text-foreground font-serif selection:bg-accent/20 overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-background text-foreground font-serif selection:bg-accent/20">
       <Navigation />
       
-      <main className="flex flex-col md:flex-row flex-1 overflow-hidden pt-[72px] md:pt-[88px]">
+      <main className="flex flex-col md:flex-row min-h-screen">
         
-        {/* Mobile Layout Wrapper */}
-        <div className="md:hidden flex flex-col w-full h-full">
-          
-          {/* Mobile Visual (Top Fixed Area) */}
-          <div className="h-[45vh] w-full relative shrink-0 z-0 overflow-hidden bg-secondary/30">
-             <AnimatePresence mode="wait">
-              <motion.img
-                key={activePoemId}
-                src={poemImages[activePoemId]}
-                initial={{ opacity: 0, scale: 1.1 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.2, ease: "easeInOut" }}
-                alt="Poem visual"
-                className="absolute inset-0 w-full h-full object-cover opacity-90"
-              />
-             </AnimatePresence>
-             <div className="absolute inset-0 bg-primary/5 mix-blend-multiply pointer-events-none" />
-          </div>
-
-          {/* Mobile Card (Bottom Scrollable Area) */}
-          <div className="flex-1 bg-background rounded-t-[2.5rem] -mt-8 relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col">
-            <div 
-              ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto px-8 py-12"
-            >
-              <div className="flex flex-col gap-24 pb-24">
-                {poems.map((poem) => (
-                  <article 
-                    key={poem.id} 
-                    id={`poem-${poem.id}`}
-                    data-poem-id={poem.id}
-                    className="flex flex-col gap-4 transition-all duration-700"
-                    style={{ 
-                      opacity: activePoemId === poem.id ? 1 : 0.4,
-                      filter: activePoemId === poem.id ? 'blur(0px)' : 'blur(1px)',
-                    }}
-                  >
-                    <header className="flex flex-col gap-2">
-                      <span className="text-[10px] font-sans font-bold tracking-widest text-accent uppercase">
-                        {poem.date}
-                      </span>
-                      <h2 className="text-3xl font-display font-medium leading-tight text-primary">
-                        {poem.title}
-                      </h2>
-                    </header>
-                    
-                    <div className="w-8 h-[1px] bg-border my-1" />
-                    
-                    <div className="prose prose-lg prose-p:font-serif prose-p:text-lg prose-p:leading-relaxed prose-p:text-foreground/90 whitespace-pre-line">
-                      {poem.content}
-                    </div>
-                  </article>
-                ))}
-                
-                <footer className="pt-12 border-t border-border flex flex-col items-center gap-4 text-center">
-                  <button 
-                    onClick={scrollToTop}
-                    className="text-xs font-sans uppercase tracking-widest hover:text-accent transition-colors"
-                  >
-                    Back to Top
-                  </button>
-                  <span className="text-xs text-muted-foreground font-sans">© 2025 Kasra Mikaili</span>
-                </footer>
-              </div>
-            </div>
-          </div>
+        {/* 
+           MOBILE: Fixed Background Image 
+           This stays fixed at z-0. The content scrolls OVER it.
+        */}
+        <div className="md:hidden fixed top-0 left-0 w-full h-[50vh] z-0">
+           <AnimatePresence mode="wait">
+            <motion.img
+              key={activePoemId}
+              src={poemImages[activePoemId]}
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
+              alt="Poem visual"
+              className="absolute inset-0 w-full h-full object-cover opacity-90"
+            />
+           </AnimatePresence>
+           <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/60" />
         </div>
 
-        {/* Desktop Visual Sidebar (Left Panel) */}
-        <div className="hidden md:flex w-1/2 h-full flex-col justify-center items-center p-12 border-r border-border/40 overflow-hidden bg-secondary/30 relative">
-          <div className="relative w-full h-full max-w-md max-h-[60vh] aspect-[3/4] overflow-hidden shadow-2xl z-10">
+        {/* 
+           DESKTOP: Sticky Sidebar
+           Standard split screen behavior
+        */}
+        <div className="hidden md:flex w-1/2 h-screen sticky top-0 left-0 flex-col justify-center items-center p-12 border-r border-border/40 overflow-hidden bg-secondary/30">
+          <div className="relative w-full h-full max-w-md max-h-[60vh] aspect-[3/4] overflow-hidden shadow-2xl">
              <AnimatePresence mode="wait">
               <motion.img
                 key={activePoemId}
@@ -164,101 +93,69 @@ export default function Home() {
              </AnimatePresence>
              <div className="absolute inset-0 bg-primary/10 mix-blend-multiply pointer-events-none" />
           </div>
-          <div className="absolute bottom-8 left-12 text-xs font-sans tracking-widest text-muted-foreground uppercase z-10">
+          <div className="absolute bottom-8 left-12 text-xs font-sans tracking-widest text-muted-foreground uppercase">
              Selected Works 2024-2025
           </div>
         </div>
 
-        {/* Desktop Scrollable Content (Right Panel) */}
-        <div 
-          className="hidden md:block flex-1 w-1/2 overflow-y-auto bg-background relative z-10"
-          onScroll={(e) => {
-            // Forward the scroll event to our handler logic via a synthetic ref update if needed, 
-            // or we can just duplicate the listener logic. 
-            // For simplicity, we can reuse the ref on the desktop container too by conditional rendering
-            // But since I split the DOM, I need to attach the ref to the visible container.
-            // See implementation below where I use a callback ref or just attach to the desktop div too.
-          }}
-        >
-          {/* 
-             NOTE: Since I split the mobile/desktop into two completely different DOM structures for the 'scrollable' part,
-             I need to make sure the `scrollContainerRef` attaches to the correct one that is visible.
-             
-             However, React refs usually point to one element. 
-             A simple fix is to use a callback ref or just have two refs and check which one is active in the effect.
-             
-             Let's use a separate ref for desktop to avoid conflict, or conditional rendering.
-             Actually, I'll just attach `ref={scrollContainerRef}` to the desktop container as well. 
-             React will update `current` to whichever element rendered last or is currently mounted.
-             Since one is `md:hidden` and the other is `hidden md:block`, only one is visible? 
-             Wait, `md:hidden` elements are still in the DOM usually unless I use conditional rendering.
-             Tailwind's `hidden` is just `display: none`. The ref might get confused if both exist.
-             
-             BETTER APPROACH for Ref: 
-             I will render the `scrollContainerRef` on BOTH, but since only one is visible to the user,
-             the `useEffect` needs to find the *visible* one to attach listeners correctly?
-             Actually, `display:none` elements have 0 height/width, so `getBoundingClientRect` won't work well.
-             
-             Let's handle this by creating a specific desktop container ref.
-          */}
-           <DesktopContent scrollRef={scrollContainerRef} activePoemId={activePoemId} scrollToTop={scrollToTop} />
+        {/* 
+           SCROLLABLE CONTENT (Both Mobile & Desktop)
+           Mobile: Has a top spacer so you see the image first, then cards scroll over.
+           Desktop: Standard right column.
+        */}
+        <div className="w-full md:w-1/2 relative z-10">
+          
+          {/* Mobile Spacer - pushes content down so we see the fixed image initially */}
+          <div className="md:hidden h-[45vh]" />
+          
+          {/* Content Wrapper with Card styling for Mobile */}
+          <div className="bg-background md:bg-transparent min-h-[60vh] rounded-t-[2.5rem] md:rounded-none shadow-[0_-10px_30px_rgba(0,0,0,0.05)] md:shadow-none border-t border-border/20 md:border-none px-6 py-12 md:p-0">
+            <div className="max-w-2xl mx-auto md:px-16 md:py-32 flex flex-col gap-32 md:gap-48 pb-32">
+              {poems.map((poem) => (
+                <article 
+                  key={poem.id} 
+                  id={`poem-${poem.id}`}
+                  data-poem-id={poem.id}
+                  className="flex flex-col gap-6 transition-all duration-700"
+                  style={{ 
+                    opacity: activePoemId === poem.id ? 1 : 0.3,
+                    transform: activePoemId === poem.id ? 'scale(1)' : 'scale(0.98)',
+                    filter: activePoemId === poem.id ? 'blur(0px)' : 'blur(1px)',
+                  }}
+                >
+                  <header className="flex flex-col gap-4">
+                    <span className="text-xs font-sans font-bold tracking-widest text-accent uppercase border-b border-accent/20 pb-2 w-fit">
+                      {poem.date}
+                    </span>
+                    <h2 className="text-4xl md:text-5xl font-display font-medium leading-tight text-primary">
+                      {poem.title}
+                    </h2>
+                  </header>
+                  
+                  <div className="w-12 h-[1px] bg-border my-2" />
+                  
+                  <div className="prose prose-lg prose-p:font-serif prose-p:text-xl prose-p:leading-loose prose-p:text-foreground/90 whitespace-pre-line">
+                    {poem.content}
+                  </div>
+                </article>
+              ))}
+              
+              <footer className="pt-24 pb-12 border-t border-border flex justify-between items-end">
+                <div className="flex flex-col gap-2">
+                  <span className="font-display text-2xl">Kasra Mikaili</span>
+                  <span className="text-sm text-muted-foreground font-sans">© 2025 All Rights Reserved.</span>
+                </div>
+                <button 
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="text-sm font-sans uppercase tracking-widest hover:text-accent transition-colors"
+                >
+                  Back to Top
+                </button>
+              </footer>
+            </div>
+          </div>
         </div>
       </main>
     </div>
   );
-}
-
-// Helper component to handle the Desktop content rendering and avoid ref conflicts if possible, 
-// or just cleaner code.
-function DesktopContent({ scrollRef, activePoemId, scrollToTop }: { scrollRef: any, activePoemId: string, scrollToTop: () => void }) {
-    return (
-        <div 
-          ref={scrollRef}
-          className="h-full w-full overflow-y-auto bg-background relative z-10"
-        >
-          <div className="max-w-2xl mx-auto px-16 py-32 flex flex-col gap-48">
-            {poems.map((poem) => (
-              <article 
-                key={poem.id} 
-                id={`poem-${poem.id}`}
-                data-poem-id={poem.id}
-                className="flex flex-col gap-6 transition-all duration-700"
-                style={{ 
-                  opacity: activePoemId === poem.id ? 1 : 0.3,
-                  transform: activePoemId === poem.id ? 'scale(1)' : 'scale(0.98)',
-                  filter: activePoemId === poem.id ? 'blur(0px)' : 'blur(1px)',
-                }}
-              >
-                <header className="flex flex-col gap-4">
-                  <span className="text-xs font-sans font-bold tracking-widest text-accent uppercase border-b border-accent/20 pb-2 w-fit">
-                    {poem.date}
-                  </span>
-                  <h2 className="text-5xl font-display font-medium leading-tight text-primary">
-                    {poem.title}
-                  </h2>
-                </header>
-                
-                <div className="w-12 h-[1px] bg-border my-2" />
-                
-                <div className="prose prose-lg prose-p:font-serif prose-p:text-xl prose-p:leading-loose prose-p:text-foreground/90 whitespace-pre-line">
-                  {poem.content}
-                </div>
-              </article>
-            ))}
-            
-            <footer className="pt-24 pb-12 border-t border-border flex justify-between items-end">
-              <div className="flex flex-col gap-2">
-                <span className="font-display text-2xl">Kasra Mikaili</span>
-                <span className="text-sm text-muted-foreground font-sans">© 2025 All Rights Reserved.</span>
-              </div>
-              <button 
-                onClick={scrollToTop}
-                className="text-sm font-sans uppercase tracking-widest hover:text-accent transition-colors"
-              >
-                Back to Top
-              </button>
-            </footer>
-          </div>
-        </div>
-    );
 }
