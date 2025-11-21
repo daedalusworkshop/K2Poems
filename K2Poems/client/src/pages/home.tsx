@@ -74,49 +74,74 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
-  // IntersectionObserver to detect active poem based on image visibility
+  // IntersectionObserver to detect active poem
   useEffect(() => {
+    // Use matchMedia to detect mobile - this works with responsive design tools
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    console.log('🖥️ Viewport Check:', {
+      windowWidth: window.innerWidth,
+      isMobile: isMobile,
+      matchesMediaQuery: window.matchMedia('(max-width: 767px)').matches
+    });
+
     const callback = (entries: IntersectionObserverEntry[]) => {
+      // Find the entry with the highest intersection ratio
+      let mostVisible = entries[0];
       entries.forEach((entry) => {
-        const id = entry.target.getAttribute("data-poem-id");
-
-        // 🔍 DEBUG: See what the observer is detecting
-        console.log('📊 Intersection Observer:', {
-          poemId: id,
-          isIntersecting: entry.isIntersecting,
-          intersectionRatio: entry.intersectionRatio,
-          elementType: entry.target.id,
-          boundingRect: entry.boundingClientRect,
-          rootBounds: entry.rootBounds,
-        });
-
-        // Trigger when image is significantly visible
-        if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
-          if (id) {
-            console.log('✅ ACTIVATING POEM:', id);
-            setActivePoemId(id);
-          }
+        if (entry.intersectionRatio > mostVisible.intersectionRatio) {
+          mostVisible = entry;
         }
       });
+
+      const id = mostVisible.target.getAttribute("data-poem-id");
+
+      // 🔍 DEBUG: See what the observer is detecting
+      console.log('📊 Most Visible Element:', {
+        poemId: id,
+        isIntersecting: mostVisible.isIntersecting,
+        intersectionRatio: mostVisible.intersectionRatio,
+        elementType: mostVisible.target.id,
+      });
+
+      // Activate the most visible poem
+      if (mostVisible.isIntersecting && mostVisible.intersectionRatio > 0.25) {
+        if (id) {
+          console.log('✅ ACTIVATING POEM:', id);
+          setActivePoemId(id);
+        }
+      }
     };
 
-    const observer = new IntersectionObserver(callback, {
-      root: null, // Viewport
-      rootMargin: "-30% 0px -30% 0px", // Focus area when image is in middle portion
-      threshold: [0.3, 0.5, 0.7]
-    });
+    // Different settings for mobile vs desktop
+    const observerOptions = isMobile ? {
+      root: null,
+      rootMargin: "-40% 0px -40% 0px", // Tighter detection zone for mobile
+      threshold: [0.25, 0.5, 0.75]
+    } : {
+      root: null,
+      rootMargin: "-20% 0px -20% 0px", // Wider detection zone for desktop
+      threshold: [0.25, 0.5, 0.75]
+    };
+
+    const observer = new IntersectionObserver(callback, observerOptions);
 
     // Observe image containers on mobile, poem articles on desktop
     poems.forEach((poem) => {
       const imageElement = document.getElementById(`image-${poem.id}`);
       const poemElement = document.getElementById(`poem-${poem.id}`);
 
+      console.log(`🔎 Looking for poem ${poem.id}:`, {
+        imageElement: imageElement ? 'FOUND' : 'NOT FOUND',
+        poemElement: poemElement ? 'FOUND' : 'NOT FOUND',
+        willObserve: isMobile ? 'IMAGE' : 'POEM'
+      });
+
       // On mobile, observe images; on desktop, observe poems
-      if (window.innerWidth < 768 && imageElement) {
-        console.log('👀 Observing IMAGE for poem:', poem.id);
+      if (isMobile && imageElement) {
+        console.log('👀 Observing IMAGE for poem:', poem.id, imageElement.id);
         observer.observe(imageElement);
       } else if (poemElement) {
-        console.log('👀 Observing POEM ARTICLE for poem:', poem.id);
+        console.log('👀 Observing POEM ARTICLE for poem:', poem.id, poemElement.id);
         observer.observe(poemElement);
       }
     });
@@ -289,20 +314,11 @@ export default function Home() {
               </div>
             ))}
 
-            <footer className="pt-24 pb-12 border-t border-border flex justify-between items-end">
+            <footer className="pt-24 pb-12 border-t border-border">
               <div className="flex flex-col gap-2">
                 <span className="font-display text-2xl">Kasra Mikaili</span>
-                <span className="text-sm text-muted-foreground font-sans">© 2025 All Rights Reserved.</span>
+                <span className="text-sm text-muted-foreground font-sans">This, too, in beauty.</span>
               </div>
-              <button
-                onClick={() => window.scrollTo({
-                  top: 0,
-                  behavior: animationConfig.smoothScrolling ? 'smooth' : 'auto'
-                })}
-                className="text-sm font-sans uppercase tracking-widest hover:text-accent transition-colors"
-              >
-                Back to Top
-              </button>
             </footer>
           </div>
         </div>
