@@ -1,0 +1,1 @@
+- absoutely not. don't touch my poem at all, just replace one of the templated poems with exaclty what i wrote, down to the last comma.
