@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: hsl(43 33% 96%); /* #F8F6F0 - Warm Cream */
+  --color-foreground: hsl(0 0% 10%);   /* #1A1A1A - Deep Black */
+  
+  --color-primary: hsl(0 0% 17%);      /* #2C2C2C - Charcoal */
+  --color-primary-foreground: hsl(43 33% 96%);
+  
+  --color-secondary: hsl(30 10% 92%);  /* Slightly darker cream for contrast */
+  --color-secondary-foreground: hsl(0 0% 17%);
+  
+  --color-accent: hsl(25 76% 31%);     /* #8B4513 - Warm Brown */
+  --color-accent-foreground: hsl(43 33% 96%);
+  
+  --color-muted: hsl(0 0% 63%);        /* #A0A0A0 - Soft Grey */
+  --color-muted-foreground: hsl(0 0% 40%);
+  
+  --color-border: hsl(0 0% 90%);
+  --color-input: hsl(0 0% 90%);
+  --color-ring: hsl(0 0% 17%);
+  
+  --font-serif: "Crimson Text", serif;
+  --font-display: "Playfair Display", serif;
+  --font-sans: "Source Sans 3", sans-serif;
+  
+  --radius-lg: 0rem; /* Sharp corners for elegance */
+  --radius-md: 0rem;
+  --radius-sm: 0rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply font-sans antialiased bg-background text-foreground selection:bg-accent/20 selection:text-accent;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
